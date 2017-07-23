@@ -1,0 +1,1 @@
+gcc -ggdb -std=c99 -I../ ../opl/src/c/graphics.c ../opl/src/c/input.c ../opl/src/c/net.c ../opl/src/c/sound.c ../opl/src/c/system.c ../opl/src/c/util.c ../osg/src/c/osg.c src/c/main.c -lSDL2 -lSDL2_mixer -lSDL2_image -lSDL2_ttf -lSDL2_net -lm -o bin/main;
