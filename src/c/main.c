@@ -1,19 +1,23 @@
-#include "opl/src/h/system.h"
-#include "opl/src/h/graphics.h"
-#include "opl/src/h/util.h"
-#include "opl/src/h/sound.h"
-#include "opl/src/h/input.h"
-#include "opl/src/h/net.h"
+/*@todo
+implement function that merge identifiers when they occur more than once
+
+implement dtor_ovp
+
+implement escaped characters (space, tab, newline, etc.)
+*/
+
+#include "opl/src/h/util.h"/*@public*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct identifier_data
+typedef struct identifier_data/*@public*/
 {
     char **strs;
     s32 strs_size;
 } identifier_data;
+
 identifier_data ctor_identifier_data()
 {
     identifier_data i;
@@ -27,7 +31,7 @@ typedef struct ovp
     s32 identifiers_size;
     
     identifier_data *identifiers_data;
-}ovp; 
+} ovp;
 
 identifier_data *ovp_get(ovp *o,char *name)
 {
@@ -42,6 +46,11 @@ identifier_data *ovp_get(ovp *o,char *name)
     return NULL;    
 }
 
+void ovp_merge_duplicates(ovp *o)
+{
+    //@todo
+}
+
 static void ovp_error(char *err_str,char *context)
 {
     printf("%s\nContext:\n%s\n",err_str,context);
@@ -49,7 +58,6 @@ static void ovp_error(char *err_str,char *context)
 } 
 static void parse_words(ovp *o, char *str, s32 *i)
 {
-   
     #define d_push_word o->identifiers_data[o->identifiers_size-1].strs_size+=1;\
     o->identifiers_data[o->identifiers_size-1].strs = \
         realloc(o->identifiers_data[o->identifiers_size-1].strs,\
@@ -64,7 +72,7 @@ static void parse_words(ovp *o, char *str, s32 *i)
     for(;str[*i] && str[*i]==' ';(*i)++);//read whitespace before word
     for(;str[*i] && str[*i]!=' ';(*i)++)
     {
-        if(str[*i]=='\n')
+        if(str[*i]=='\n' || !str[*i])
         {
             d_push_word
             return;
@@ -90,6 +98,9 @@ static void parse_words(ovp *o, char *str, s32 *i)
 }
 ovp *ctor_ovp(char *ovp_str)
 {
+/*
+@todo do tokenizing in oll
+*/
     s32 ovp_index=0;
     
     ovp *result=malloc(sizeof(ovp));
@@ -98,8 +109,12 @@ ovp *ctor_ovp(char *ovp_str)
     result->identifiers=NULL;
     
     result->identifiers_data=NULL;
-    
-    for(;ovp_str[ovp_index];ovp_index++)
+
+    s32 ovp_str_len=strlen(ovp_str);
+
+    #define d_loop_cond ovp_index<=ovp_str_len //iterate through the zero
+
+    for(;d_loop_cond;ovp_index++)
     {
         //the outer root only runs after newline, to look for another identifier
         //otherwise inner loops parse the tokens they excpect to follow
@@ -111,13 +126,12 @@ ovp *ctor_ovp(char *ovp_str)
         {
             if(ovp_str[ovp_index]=='#')
             {
-                //@bug for now just read until after newline
-                for(;ovp_str[ovp_index]!='\n';ovp_index++);
+                for(;ovp_str[ovp_index]!='\n' && ovp_str[ovp_index]; ovp_index++);
                 continue;
             }
             
             //found identifier, parse it
-            for(;ovp_str[ovp_index];ovp_index++)
+            for(;d_loop_cond;ovp_index++)
             {
                 if(ovp_str[ovp_index]==':'||ovp_str[ovp_index]==' ')
                 {
@@ -151,10 +165,10 @@ ovp *ctor_ovp(char *ovp_str)
                         
                         //log some stuff
                         char *ident=result->identifiers[result->identifiers_size-1];
-                        printf("\n%d\n%s\n",result->identifiers_size,ident);
+                        printf("\n\"%d\"\n\"%s\"\n",result->identifiers_size,ident);
                         for(s32 x=0; x<result->identifiers_data[result->identifiers_size-1].strs_size; x++)
                         {
-                            printf("%s\n",result->identifiers_data[result->identifiers_size-1].strs[x]);
+                            printf("\"%s\"\n",result->identifiers_data[result->identifiers_size-1].strs[x]);
                         }
                         
                         break;
@@ -164,7 +178,7 @@ ovp *ctor_ovp(char *ovp_str)
                         ovp_error("Expected colon after identifier.",identifier);
                     }
                 }
-                else if(ovp_str[ovp_index]!='\n')
+                else if(ovp_str[ovp_index]!='\n' && ovp_str[ovp_index])
                 {
                     //if its a valid character append it to identifier
                     //@todo str_append function
@@ -176,6 +190,12 @@ ovp *ctor_ovp(char *ovp_str)
                     free(temp);
                     free(temp2);
                 }
+        else // '\n' || 0
+        {
+            
+            if(strlen(identifier))ovp_error("Expected colon but reached end of line.", identifier);
+            break;
+        }
             }
         }
     }
@@ -189,6 +209,6 @@ void dtor_ovp(ovp *o)
 
 int main()
 {
-    ovp *result=ctor_ovp(malloc_file_cstr("../../ode/bin/res/syntax_c.var"));
+    ovp *result=ctor_ovp(alloc_file_to_str("../../ode/bin/res/syntax_c.var"));
     return 0;
 }
