@@ -6,17 +6,8 @@ implement dtor_ovp
 implement escaped characters (space, tab, newline, etc.)
 */
 
-#include "opl/src/h/util.h"/*@public*/
+#include "../h/ovp.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-typedef struct identifier_data/*@public*/
-{
-    char **strs;
-    s32 strs_size;
-} identifier_data;
 
 identifier_data ctor_identifier_data()
 {
@@ -24,14 +15,6 @@ identifier_data ctor_identifier_data()
     memset(&i,0,sizeof(identifier_data));
     return i;
 }
-typedef struct ovp
-{
-    //identifiers and identifier_data index the same
-    char **identifiers;
-    s32 identifiers_size;
-    
-    identifier_data *identifiers_data;
-} ovp;
 
 identifier_data *ovp_get(ovp *o,char *name)
 {
@@ -44,11 +27,6 @@ identifier_data *ovp_get(ovp *o,char *name)
         }
     }
     return NULL;    
-}
-
-void ovp_merge_duplicates(ovp *o)
-{
-    //@todo
 }
 
 static void ovp_error(char *err_str,char *context)
@@ -126,7 +104,8 @@ ovp *ctor_ovp(char *ovp_str)
         {
             if(ovp_str[ovp_index]=='#')
             {
-                for(;ovp_str[ovp_index]!='\n' && ovp_str[ovp_index]; ovp_index++);
+                for(;ovp_str[ovp_index]!='\n' && ovp_str[ovp_index]!='\r' && ovp_str[ovp_index]; ovp_index++);
+
                 continue;
             }
             
@@ -165,12 +144,13 @@ ovp *ctor_ovp(char *ovp_str)
                         
                         //log some stuff
                         char *ident=result->identifiers[result->identifiers_size-1];
+                        /*
                         printf("\n\"%d\"\n\"%s\"\n",result->identifiers_size,ident);
                         for(s32 x=0; x<result->identifiers_data[result->identifiers_size-1].strs_size; x++)
                         {
                             printf("\"%s\"\n",result->identifiers_data[result->identifiers_size-1].strs[x]);
                         }
-                        
+                        */
                         break;
                     }
                     else
@@ -178,7 +158,7 @@ ovp *ctor_ovp(char *ovp_str)
                         ovp_error("Expected colon after identifier.",identifier);
                     }
                 }
-                else if(ovp_str[ovp_index]!='\n' && ovp_str[ovp_index])
+                else if(ovp_str[ovp_index]!='\n' && ovp_str[ovp_index]!='\r' && ovp_str[ovp_index])
                 {
                     //if its a valid character append it to identifier
                     //@todo str_append function
@@ -190,12 +170,11 @@ ovp *ctor_ovp(char *ovp_str)
                     free(temp);
                     free(temp2);
                 }
-        else // '\n' || 0
-        {
-            
-            if(strlen(identifier))ovp_error("Expected colon but reached end of line.", identifier);
-            break;
-        }
+                else // '\n' || 0
+                {
+                    if(strlen(identifier))ovp_error("Expected colon but reached end of line.", identifier);
+                    break;
+                }
             }
         }
     }
@@ -204,11 +183,17 @@ ovp *ctor_ovp(char *ovp_str)
 }
 void dtor_ovp(ovp *o)
 {
-    //@todo
-}
+    for(int i=0; i<o->identifiers_size; i++){
+        for(int j=0; j<o->identifiers_data[i].strs_size; j++){
+            free(o->identifiers_data[i].strs[j]);
+        }
+        free(o->identifiers_data[i].strs);
 
-int main()
-{
-    ovp *result=ctor_ovp(alloc_file_to_str("../../ode/bin/res/syntax_c.var"));
-    return 0;
+        free(o->identifiers[i]);
+    }
+
+    free(o->identifiers_data);
+    free(o->identifiers);
+
+    free(o);
 }
