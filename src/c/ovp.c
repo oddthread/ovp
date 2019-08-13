@@ -29,22 +29,22 @@ identifier_data *ovp_get(ovp *o,char *name)
     return NULL;    
 }
 
-static void ovp_error(char *err_str,char *context)
+static void ovp_error(char const *err_str,char const *context)
 {
     printf("%s\nContext:\n%s\n",err_str,context);
     exit(-1);
 } 
-static void parse_words(ovp *o, char *str, s32 *i)
+static void parse_words(ovp *o, char const *str, s32 *i)
 {
     #define d_push_word o->identifiers_data[o->identifiers_size-1].strs_size+=1;\
     o->identifiers_data[o->identifiers_size-1].strs = \
-        realloc(o->identifiers_data[o->identifiers_size-1].strs,\
+        (char**)realloc(o->identifiers_data[o->identifiers_size-1].strs,\
             sizeof(char*) * o->identifiers_data[o->identifiers_size-1].strs_size);\
     o->identifiers_data[o->identifiers_size-1].strs[\
         o->identifiers_data[o->identifiers_size-1].strs_size-1]\
             =word;
              
-    char *word=malloc(1);
+    char *word=(char*)malloc(1);
     word[0]=0;
    
     for(;str[*i] && str[*i]==' ';(*i)++);//read whitespace before word
@@ -57,7 +57,7 @@ static void parse_words(ovp *o, char *str, s32 *i)
         }
         //read word
         char *temp=word;
-        char *temp2=malloc(2);
+        char *temp2=(char*)malloc(2);
         temp2[0]=str[*i];
         temp2[1]=0;
         word=str_cat(word,temp2);
@@ -74,14 +74,14 @@ static void parse_words(ovp *o, char *str, s32 *i)
     d_push_word  
     parse_words(o,str,i);   
 }
-ovp *ctor_ovp(char *ovp_str)
+ovp *ctor_ovp(char const *ovp_str)
 {
 /*
 @todo do tokenizing in oll
 */
     s32 ovp_index=0;
     
-    ovp *result=malloc(sizeof(ovp));
+    ovp *result=(ovp*)malloc(sizeof(ovp));
     
     result->identifiers_size=0;
     result->identifiers=NULL;
@@ -97,7 +97,7 @@ ovp *ctor_ovp(char *ovp_str)
         //the outer root only runs after newline, to look for another identifier
         //otherwise inner loops parse the tokens they excpect to follow
         
-        char *identifier=malloc(1);
+        char *identifier=(char*)malloc(1);
         identifier[0]=0;
         
         if(ovp_str[ovp_index]!=' ')
@@ -126,11 +126,11 @@ ovp *ctor_ovp(char *ovp_str)
                     {
                         //add the identifier
                         result->identifiers_size+=1;
-                        result->identifiers=realloc(result->identifiers,sizeof(char*)*result->identifiers_size);
+                        result->identifiers=(char**)realloc(result->identifiers,sizeof(char*)*result->identifiers_size);
                         result->identifiers[result->identifiers_size-1]=identifier;
         
                         //add the identifier_data structure
-                        result->identifiers_data=realloc(
+                        result->identifiers_data=(identifier_data*)realloc(
                             result->identifiers_data,
                             result->identifiers_size * sizeof(identifier_data));
                         result->identifiers_data[result->identifiers_size-1]=
@@ -163,7 +163,7 @@ ovp *ctor_ovp(char *ovp_str)
                     //if its a valid character append it to identifier
                     //@todo str_append function
                     char *temp=identifier;
-                    char *temp2=malloc(2);
+                    char *temp2=(char*)malloc(2);
                     temp2[0]=ovp_str[ovp_index];
                     temp2[1]=0;
                     identifier=str_cat(identifier,temp2);
@@ -180,6 +180,34 @@ ovp *ctor_ovp(char *ovp_str)
     }
     
     return result;
+}
+
+char *allocstr_ovp(ovp *o){//@bug untested
+    int size=0;
+    for(int i=0; i<o->identifiers_size; i++){
+        size+=strlen(o->identifiers[i]);
+        size++;//the colon
+        for(int j=0; j<o->identifiers_data[i].strs_size; j++){
+            size+=strlen(o->identifiers_data[i].strs[j]);
+            size++;//the whitespace
+        }
+        size++;//the newline
+    }
+    size++;//the null
+
+    char *buffer=(char*)malloc(size);
+    buffer[0]=0;
+    for(int i=0; i<o->identifiers_size; i++){
+        strcat(buffer,o->identifiers[i]);
+        strcat(buffer,":");
+        for(int j=0; j<o->identifiers_data[i].strs_size; j++){
+            strcat(buffer,o->identifiers_data[i].strs[j]);
+            strcat(buffer," ");
+        }
+        strcat(buffer,"\n");
+    }
+
+    return buffer;
 }
 void dtor_ovp(ovp *o)
 {

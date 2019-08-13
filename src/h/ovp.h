@@ -23,6 +23,6 @@ typedef struct ovp
 } ovp;
 
 void dtor_ovp(ovp *o);
-ovp *ctor_ovp(char *ovp_str);
-
+ovp *ctor_ovp(char const *ovp_str);
+char *allocstr_ovp(ovp *o);//@bug untested
 #endif
