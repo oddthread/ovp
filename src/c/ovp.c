@@ -26,7 +26,7 @@ identifier_data *ovp_get(ovp *o,char *name)
             return &o->identifiers_data[i]; 
         }
     }
-    return NULL;    
+    return (identifier_data*)NULL;    
 }
 
 static void ovp_error(char const *err_str,char const *context)
@@ -84,9 +84,9 @@ ovp *ctor_ovp(char const *ovp_str)
     ovp *result=(ovp*)malloc(sizeof(ovp));
     
     result->identifiers_size=0;
-    result->identifiers=NULL;
+    result->identifiers=(char**)NULL;
     
-    result->identifiers_data=NULL;
+    result->identifiers_data=(identifier_data*)NULL;
 
     s32 ovp_str_len=strlen(ovp_str);
 
